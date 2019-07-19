@@ -1,15 +1,16 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Minesweeper!! yay!</title>
+    <title>Raustin Minesweeper</title>
     <script src="MinesweeperBoxes.js"></script>
   </head>
   <body onload="onLoad()">
-    <p></p>
-    <p></p>
-    <p></p>
-    <p></p>
-    <p></p>
-    <canvas id="board" width="800" height="600"></canvas>
+  <div>
+    <label>Width: <input id="widthInput" type="number" value="25" min="5" max="50"></input></label>
+    <label>Height: <input id="heightInput" type="number" value="25" min="5" max="50"></input></label>
+    <label>Mines: <input id="minesInput" type="number" value="10" min="5" max="50"></input></label>
+    <button id="startButton">Start Game</button>
+  </div>
+   <canvas id="board" width="800" height="600"></canvas>
   </body>
 </html>
