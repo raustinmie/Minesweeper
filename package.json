@@ -18,6 +18,9 @@
   },
   "homepage": "https://github.com/raustinmie/Minesweeper#readme",
   "dependencies": {
-    "express": "^4.17.1"
+    "cors": "^2.8.5",
+    "express": "^4.17.1",
+    "express-ws": "^4.0.0",
+    "helmet": "^3.18.0"
   }
 }
