@@ -1,12 +1,23 @@
 const width = 25;
 const height = 25;
-const board = [];
-const heightInBoxes = 10;
-const widthInBoxes = 10;
-const mineCount = 10;
+let board = [];
+let heightInBoxes = 10;
+let widthInBoxes = 10;
+let mineCount = 10;
 const bombIcon = String.fromCodePoint(0x1f4a3);
 const flagIcon = String.fromCodePoint(0x1f6a9);
 const questionMarkIcon = String.fromCodePoint(0x2753);
+
+function takeInputs() {
+	const widthInput = document.getElementById("widthInput");
+	const heightInput = document.getElementById("heightInput");
+	const minesInput = document.getElementById("minesInput");
+	widthInBoxes = parseInt(widthInput.value);
+	heightInBoxes = parseInt(heightInput.value);
+	mineCount = parseInt(minesInput.value);
+
+	setupBoard();
+}
 
 function roll(min, max) {
 	if (max === undefined) {
@@ -43,7 +54,19 @@ class Box {
 		this._hasMine = false;
 		this._neighborCount = 0;
 		this._revealed = false;
-		this._flagged = 0;
+		this._flagged = Box.EMPTY;
+	}
+
+	static get EMPTY() {
+		return 0;
+	}
+
+	static get FLAG() {
+		return 1;
+	}
+
+	static get QUESTION() {
+		return 2;
 	}
 
 	get flagged() {
@@ -92,6 +115,21 @@ class Box {
 		if (!this._revealed) {
 			ctx.fillStyle = "gray";
 			ctx.fillRect(this._xLocation, this._yLocation, this._width, this._height);
+			if (this.flagged == Box.FLAG) {
+				ctx.fillText(
+					flagIcon,
+					this._xLocation + this._width / 2,
+					this._yLocation + this._height / 2,
+					this._width
+				);
+			} else if (this._flagged == Box.QUESTION) {
+				ctx.fillText(
+					questionMarkIcon,
+					this._xLocation + this._width / 2,
+					this._yLocation + this._height / 2,
+					this._width
+				);
+			}
 		} else {
 			ctx.fillStyle = "white";
 			ctx.fillRect(this._xLocation, this._yLocation, this._width, this._height);
@@ -106,20 +144,6 @@ class Box {
 			} else if (this._neighborCount !== 0) {
 				ctx.fillText(
 					this._neighborCount,
-					this._xLocation + this._width / 2,
-					this._yLocation + this._height / 2,
-					this._width
-				);
-			} else if ((this._flagged = 1)) {
-				ctx.fillText(
-					flagIcon,
-					this._xLocation + this._width / 2,
-					this._yLocation + this._height / 2,
-					this._width
-				);
-			} else if ((this._flagged = 2)) {
-				ctx.fillText(
-					questionMarkIcon,
 					this._xLocation + this._width / 2,
 					this._yLocation + this._height / 2,
 					this._width
@@ -182,13 +206,13 @@ function countNeighbors(board) {
 
 //document.addEventListener("DOMContentLoaded", onLoad);
 
-function onLoad(event) {
-	console.log("Document finished loading");
-
+function setupBoard() {
 	const boardCanvas = document.getElementById("board");
 	const ctx = boardCanvas.getContext("2d");
-	const flatArray = [];
+	ctx.clearRect(0, 0, boardCanvas.width, boardCanvas.height);
 
+	board = [];
+	const flatArray = [];
 	// setup
 	for (let y = 0; y < heightInBoxes; ++y) {
 		board.push([]);
@@ -207,25 +231,36 @@ function onLoad(event) {
 			board[y][x].draw(ctx);
 		}
 	}
+}
+
+function onLoad(event) {
+	console.log("Document finished loading");
+
+	document
+		.getElementById("startButton")
+		.addEventListener("click", event => takeInputs());
+
+	const boardCanvas = document.getElementById("board");
+	const ctx = boardCanvas.getContext("2d");
 
 	boardCanvas.addEventListener(
 		"contextmenu",
 		event => {
-			let rect = boardCanvas.getBoundingClientRect();
+			event.preventDefault();
+			const rect = boardCanvas.getBoundingClientRect();
 			const xPos = event.clientX - rect.left;
 			const yPos = event.clientY - rect.top;
 			const x = Math.floor(xPos / width);
 			const y = Math.floor(yPos / height);
-			event.preventDefault();
-			if (board[y][x].flagged == 0) {
-				board[y][x].flagged = flagIcon;
-			} else if (board[y][x].flagged == flagIcon) {
-				board[y][x].flagged = questionMarkIcon;
+			if (board[y][x].flagged == Box.EMPTY) {
+				board[y][x].flagged = Box.FLAG;
+			} else if (board[y][x].flagged == Box.FLAG) {
+				board[y][x].flagged = Box.QUESTION;
 			} else {
-				board[y][x].flagged = 0;
+				board[y][x].flagged = Box.EMPTY;
 			}
 			board[y][x].draw(ctx);
-			//rightClickDraw(ctx,board[y][x])
+			//rightClickDraw(ctx,board[y])
 		},
 		false
 	);
@@ -237,21 +272,35 @@ function onLoad(event) {
 		const yPos = event.clientY - rect.top;
 		const x = Math.floor(xPos / width);
 		const y = Math.floor(yPos / height);
-
-		if (x < 0 || x >= width || y < 0 || y >= height) {
+		if (x < 0 || x >= widthInBoxes || y < 0 || y >= heightInBoxes) {
 			return;
 		}
 
 		console.log(`board clicked ${x},${y}`);
 		console.log(board[y][x].hasMine);
+		if (board[y][x].flagged == Box.FLAG) {
+			return;
+		} else if (board[y][x].revealed) {
+			return;
+		}
 		reveal(ctx, board[y][x]);
 		board[y][x].draw(ctx);
-		if (board[y][x].hasMine == true) {
-			//   alert("Game Over!");
+		if (board[y][x].hasMine) {
+			alert("Game Over!");
 		} else if (board[y][x].neighborCount === 0) {
 			forEachNeighbor(x, y, box => reveal(ctx, box));
 		}
+		for (let y = 0; y < heightInBoxes; ++y) {
+			for (let x = 0; x < widthInBoxes; ++x) {
+				if (!board[y][x].revealed && !board[y][x].hasMine) {
+					return;
+				}
+			}
+		}
+		alert("You Win!");
 	});
+
+	takeInputs();
 }
 
 function reveal(ctx, box) {
